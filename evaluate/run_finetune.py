@@ -91,7 +91,7 @@ def evaluate(test_dataset, model, args, prefix="Test"):
                 seq_correct += sum(seq_pred==seq_labels.cpu()).item()
 
                 loss += torch.mean(outputs[0]).item()
-            
+
             elif args.TASK == 'nli':
                 s1_input_ids = batch['context']['input_ids'].to(args.device)
                 s1_attention_mask = batch['context']['attention_mask'].to(args.device)
@@ -114,9 +114,9 @@ def evaluate(test_dataset, model, args, prefix="Test"):
 
                 all_seq_labels = torch.cat([all_seq_labels, seq_labels.cpu()])
                 all_seq_preds = torch.cat([all_seq_preds, seq_pred])
-                
+
                 loss += torch.mean(outputs[0]).item()
-            
+
 
             elif args.TASK == 'da':
                 input_ids = batch['input_ids'].to(args.device)
@@ -130,7 +130,7 @@ def evaluate(test_dataset, model, args, prefix="Test"):
                 all_seq_preds = torch.cat([all_seq_preds, seq_pred])
 
                 loss += torch.mean(outputs[0]).item()
-            
+
 
             elif args.TASK == "rs":
                 context_input_ids = batch['context']['input_ids'].to(args.device)
@@ -150,9 +150,9 @@ def evaluate(test_dataset, model, args, prefix="Test"):
                 rs_scores['recall_3'] += recall_3
                 rs_scores['recall_5'] += recall_5
                 rs_scores['recall_10'] += recall_10
-                
+
                 loss += torch.mean(cur_loss).item()
-           
+
 
     loss /= len(test_dataloader)
     model.train()
@@ -160,24 +160,24 @@ def evaluate(test_dataset, model, args, prefix="Test"):
     # logger.info('\n')
     if args.TASK in ['seq', 'nli']:
         accuracy = 100. * seq_correct / len(test_dataloader.dataset)
-        message = 'Seq Accuracy: {}, Loss: {}'.format(accuracy, loss)
+        message = f'Seq Accuracy: {accuracy}, Loss: {loss}'
         main_metric = accuracy
-    
+
     elif args.TASK == 'oos':
         acc, in_acc, oos_acc, oos_recall = test_oos(all_seq_labels.numpy(), all_seq_preds.numpy())
         message = 'Accuracy: %.4f, In Acc: %.4f, Out Acc: %.4f, Out Recall: %.4f, Loss: %.4f' % (acc, in_acc, oos_acc, oos_recall, loss)
-    
+
     elif args.TASK == 'da':
         micro_f1 = f1_score(all_seq_labels, all_seq_preds, average='micro', zero_division=0)
         macro_f1 = f1_score(all_seq_labels, all_seq_preds, average='macro', zero_division=0)
         message = 'Micro F1: %.4f, Macro F1: %.4f, Loss: %.4f' % (micro_f1, macro_f1, loss)
 
     elif args.TASK == 'rs':
-        for metric in rs_scores:
-            rs_scores[metric] /= len(test_dataloader)
+        for value in rs_scores.values():
+            value /= len(test_dataloader)
         message = 'Recall@ 1: %.4f, 3: %.4f, 5: %.4f, 10: %.4f,' % (rs_scores['recall_1'], rs_scores['recall_3'], rs_scores['recall_5'], rs_scores['recall_10'])
 
-    logger.info(prefix + " : " + message)
+    logger.info(f"{prefix} : {message}")
 
     if prefix == "Test":
         with open(os.path.join(args.output_dir, "result.txt"), "a") as f:
@@ -189,8 +189,7 @@ def evaluate(test_dataset, model, args, prefix="Test"):
         return {"main":(micro_f1 + macro_f1) / 2, "micro_f1":micro_f1, "macro_f1":macro_f1}, loss
     elif args.TASK == 'rs':
         main_metric = rs_scores['recall_1'] + rs_scores['recall_3'] + rs_scores['recall_5'] + rs_scores['recall_10']
-        results = {'main':main_metric}
-        results.update(rs_scores)
+        results = {'main':main_metric} | rs_scores
         return results, loss
     else:
         return {"main":main_metric}, loss

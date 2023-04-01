@@ -12,19 +12,38 @@ MODEL_CLASS = {
 
 def get_optimizer(model, args):
     if 'roberta' in args.bert:
-        optimizer = torch.optim.Adam([
-            {'params':model.roberta.parameters()}, 
-            {'params':model.contrast_head.parameters(), 'lr': args.lr*args.lr_scale}], lr=args.lr)
+        return torch.optim.Adam(
+            [
+                {'params': model.roberta.parameters()},
+                {
+                    'params': model.contrast_head.parameters(),
+                    'lr': args.lr * args.lr_scale,
+                },
+            ],
+            lr=args.lr,
+        )
     elif 'distilbert' in args.bert:
-        optimizer = torch.optim.Adam([
-            {'params':model.distilbert.parameters()}, 
-            {'params':model.contrast_head.parameters(), 'lr': args.lr*args.lr_scale}], lr=args.lr)
+        return torch.optim.Adam(
+            [
+                {'params': model.distilbert.parameters()},
+                {
+                    'params': model.contrast_head.parameters(),
+                    'lr': args.lr * args.lr_scale,
+                },
+            ],
+            lr=args.lr,
+        )
     else:
-        optimizer = torch.optim.Adam([
-            {'params':model.bert.parameters()}, 
-            {'params':model.contrast_head.parameters(), 'lr': args.lr*args.lr_scale}], lr=args.lr)
-
-    return optimizer 
+        return torch.optim.Adam(
+            [
+                {'params': model.bert.parameters()},
+                {
+                    'params': model.contrast_head.parameters(),
+                    'lr': args.lr * args.lr_scale,
+                },
+            ],
+            lr=args.lr,
+        ) 
     
 
 def get_bert_config_tokenizer(model_name):

@@ -24,8 +24,7 @@ class PSCBert(BertPreTrainedModel):
     def forward(self, input_ids, attention_mask, task_type):        
         if task_type == "evaluate":
             return self.get_mean_embeddings(input_ids, attention_mask)
-        else:
-            '''
+        '''
             When both query and reponse are single-turn sentence, input_ids are in shape
             Batch_Size * 2 * Max_Sequence_Length
 
@@ -36,27 +35,27 @@ class PSCBert(BertPreTrainedModel):
 
             The last index of the second dimension always stands for the response, the rest stands for the query
             '''
-            if input_ids.shape[1] == 2:
-                input_ids_1, input_ids_2 = torch.unbind(input_ids, dim=1)
-                attention_mask_1, attention_mask_2 = torch.unbind(attention_mask, dim=1) 
-            else:
-                batch_size = input_ids.shape[0]
-                input_ids_1 = input_ids[:, :-1, :].view(batch_size, -1)
-                input_ids_2 = input_ids[:, -1, :]
-                attention_mask_1 = attention_mask[:, :-1, :].view(batch_size, -1)
-                attention_mask_2 = attention_mask[:, -1, :]
-            
+        if input_ids.shape[1] == 2:
+            input_ids_1, input_ids_2 = torch.unbind(input_ids, dim=1)
+            attention_mask_1, attention_mask_2 = torch.unbind(attention_mask, dim=1) 
+        else:
+            batch_size = input_ids.shape[0]
+            input_ids_1 = input_ids[:, :-1, :].view(batch_size, -1)
+            input_ids_2 = input_ids[:, -1, :]
+            attention_mask_1 = attention_mask[:, :-1, :].view(batch_size, -1)
+            attention_mask_2 = attention_mask[:, -1, :]
 
-            # mean embeddings
-            bert_output_1 = self.bert.forward(input_ids=input_ids_1, attention_mask=attention_mask_1)
-            bert_output_2 = self.bert.forward(input_ids=input_ids_2, attention_mask=attention_mask_2)
-            attention_mask_1 = attention_mask_1.unsqueeze(-1)
-            attention_mask_2 = attention_mask_2.unsqueeze(-1)
-            mean_output_1 = torch.sum(bert_output_1[0]*attention_mask_1, dim=1) / torch.sum(attention_mask_1, dim=1)
-            mean_output_2 = torch.sum(bert_output_2[0]*attention_mask_2, dim=1) / torch.sum(attention_mask_2, dim=1)
 
-            cnst_feat1, cnst_feat2 = self.contrast_logits(mean_output_1, mean_output_2)
-            return cnst_feat1, cnst_feat2, mean_output_1, mean_output_2
+        # mean embeddings
+        bert_output_1 = self.bert.forward(input_ids=input_ids_1, attention_mask=attention_mask_1)
+        bert_output_2 = self.bert.forward(input_ids=input_ids_2, attention_mask=attention_mask_2)
+        attention_mask_1 = attention_mask_1.unsqueeze(-1)
+        attention_mask_2 = attention_mask_2.unsqueeze(-1)
+        mean_output_1 = torch.sum(bert_output_1[0]*attention_mask_1, dim=1) / torch.sum(attention_mask_1, dim=1)
+        mean_output_2 = torch.sum(bert_output_2[0]*attention_mask_2, dim=1) / torch.sum(attention_mask_2, dim=1)
+
+        cnst_feat1, cnst_feat2 = self.contrast_logits(mean_output_1, mean_output_2)
+        return cnst_feat1, cnst_feat2, mean_output_1, mean_output_2
             
     # pass BERT embedding through the contrastive heads to get logits
     def contrast_logits(self, embd1, embd2):
@@ -69,8 +68,9 @@ class PSCBert(BertPreTrainedModel):
         # mean embeddings
         bert_output = self.bert.forward(input_ids=input_ids, attention_mask=attention_mask)
         attention_mask = attention_mask.unsqueeze(-1)
-        embeddings = torch.sum(bert_output[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
-        return embeddings
+        return torch.sum(bert_output[0] * attention_mask, dim=1) / torch.sum(
+            attention_mask, dim=1
+        )
 
 
 
@@ -92,8 +92,7 @@ class PSCRoberta(RobertaPreTrainedModel):
     def forward(self, input_ids, attention_mask, task_type):        
         if task_type == "evaluate":
             return self.get_mean_embeddings(input_ids, attention_mask)
-        else:
-            '''
+        '''
             When both query and reponse are single-turn sentence, input_ids are in shape
             Batch_Size * 2 * Max_Sequence_Length
 
@@ -104,27 +103,27 @@ class PSCRoberta(RobertaPreTrainedModel):
 
             The last index of the second dimension always stands for the response, the rest stands for the query
             '''
-            if input_ids.shape[1] == 2:
-                input_ids_1, input_ids_2 = torch.unbind(input_ids, dim=1)
-                attention_mask_1, attention_mask_2 = torch.unbind(attention_mask, dim=1) 
-            else:
-                batch_size = input_ids.shape[0]
-                input_ids_1 = input_ids[:, :-1, :].view(batch_size, -1)
-                input_ids_2 = input_ids[:, -1, :]
-                attention_mask_1 = attention_mask[:, :-1, :].view(batch_size, -1)
-                attention_mask_2 = attention_mask[:, -1, :]
-            
+        if input_ids.shape[1] == 2:
+            input_ids_1, input_ids_2 = torch.unbind(input_ids, dim=1)
+            attention_mask_1, attention_mask_2 = torch.unbind(attention_mask, dim=1) 
+        else:
+            batch_size = input_ids.shape[0]
+            input_ids_1 = input_ids[:, :-1, :].view(batch_size, -1)
+            input_ids_2 = input_ids[:, -1, :]
+            attention_mask_1 = attention_mask[:, :-1, :].view(batch_size, -1)
+            attention_mask_2 = attention_mask[:, -1, :]
 
-            # mean embeddings
-            bert_output_1 = self.roberta.forward(input_ids=input_ids_1, attention_mask=attention_mask_1)
-            bert_output_2 = self.roberta.forward(input_ids=input_ids_2, attention_mask=attention_mask_2)
-            attention_mask_1 = attention_mask_1.unsqueeze(-1)
-            attention_mask_2 = attention_mask_2.unsqueeze(-1)
-            mean_output_1 = torch.sum(bert_output_1[0]*attention_mask_1, dim=1) / torch.sum(attention_mask_1, dim=1)
-            mean_output_2 = torch.sum(bert_output_2[0]*attention_mask_2, dim=1) / torch.sum(attention_mask_2, dim=1)
 
-            cnst_feat1, cnst_feat2 = self.contrast_logits(mean_output_1, mean_output_2)
-            return cnst_feat1, cnst_feat2, mean_output_1, mean_output_2
+        # mean embeddings
+        bert_output_1 = self.roberta.forward(input_ids=input_ids_1, attention_mask=attention_mask_1)
+        bert_output_2 = self.roberta.forward(input_ids=input_ids_2, attention_mask=attention_mask_2)
+        attention_mask_1 = attention_mask_1.unsqueeze(-1)
+        attention_mask_2 = attention_mask_2.unsqueeze(-1)
+        mean_output_1 = torch.sum(bert_output_1[0]*attention_mask_1, dim=1) / torch.sum(attention_mask_1, dim=1)
+        mean_output_2 = torch.sum(bert_output_2[0]*attention_mask_2, dim=1) / torch.sum(attention_mask_2, dim=1)
+
+        cnst_feat1, cnst_feat2 = self.contrast_logits(mean_output_1, mean_output_2)
+        return cnst_feat1, cnst_feat2, mean_output_1, mean_output_2
             
     # pass BERT embedding through the contrastive heads to get logits
     def contrast_logits(self, embd1, embd2):
@@ -137,8 +136,9 @@ class PSCRoberta(RobertaPreTrainedModel):
         # mean embeddings
         bert_output = self.roberta.forward(input_ids=input_ids, attention_mask=attention_mask)
         attention_mask = attention_mask.unsqueeze(-1)
-        embeddings = torch.sum(bert_output[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
-        return embeddings
+        return torch.sum(bert_output[0] * attention_mask, dim=1) / torch.sum(
+            attention_mask, dim=1
+        )
 
 
 
@@ -160,8 +160,7 @@ class PSCDistilBERT(DistilBertPreTrainedModel):
     def forward(self, input_ids, attention_mask, task_type):        
         if task_type == "evaluate":
             return self.get_mean_embeddings(input_ids, attention_mask)
-        else:
-            '''
+        '''
             When both query and reponse are single-turn sentence, input_ids are in shape
             Batch_Size * 2 * Max_Sequence_Length
 
@@ -172,27 +171,27 @@ class PSCDistilBERT(DistilBertPreTrainedModel):
 
             The last index of the second dimension always stands for the response, the rest stands for the query
             '''
-            if input_ids.shape[1] == 2:
-                input_ids_1, input_ids_2 = torch.unbind(input_ids, dim=1)
-                attention_mask_1, attention_mask_2 = torch.unbind(attention_mask, dim=1) 
-            else:
-                batch_size = input_ids.shape[0]
-                input_ids_1 = input_ids[:, :-1, :].view(batch_size, -1)
-                input_ids_2 = input_ids[:, -1, :]
-                attention_mask_1 = attention_mask[:, :-1, :].view(batch_size, -1)
-                attention_mask_2 = attention_mask[:, -1, :]
-            
+        if input_ids.shape[1] == 2:
+            input_ids_1, input_ids_2 = torch.unbind(input_ids, dim=1)
+            attention_mask_1, attention_mask_2 = torch.unbind(attention_mask, dim=1) 
+        else:
+            batch_size = input_ids.shape[0]
+            input_ids_1 = input_ids[:, :-1, :].view(batch_size, -1)
+            input_ids_2 = input_ids[:, -1, :]
+            attention_mask_1 = attention_mask[:, :-1, :].view(batch_size, -1)
+            attention_mask_2 = attention_mask[:, -1, :]
 
-            # mean embeddings
-            bert_output_1 = self.distilbert.forward(input_ids=input_ids_1, attention_mask=attention_mask_1)
-            bert_output_2 = self.distilbert.forward(input_ids=input_ids_2, attention_mask=attention_mask_2)
-            attention_mask_1 = attention_mask_1.unsqueeze(-1)
-            attention_mask_2 = attention_mask_2.unsqueeze(-1)
-            mean_output_1 = torch.sum(bert_output_1[0]*attention_mask_1, dim=1) / torch.sum(attention_mask_1, dim=1)
-            mean_output_2 = torch.sum(bert_output_2[0]*attention_mask_2, dim=1) / torch.sum(attention_mask_2, dim=1)
 
-            cnst_feat1, cnst_feat2 = self.contrast_logits(mean_output_1, mean_output_2)
-            return cnst_feat1, cnst_feat2, mean_output_1, mean_output_2
+        # mean embeddings
+        bert_output_1 = self.distilbert.forward(input_ids=input_ids_1, attention_mask=attention_mask_1)
+        bert_output_2 = self.distilbert.forward(input_ids=input_ids_2, attention_mask=attention_mask_2)
+        attention_mask_1 = attention_mask_1.unsqueeze(-1)
+        attention_mask_2 = attention_mask_2.unsqueeze(-1)
+        mean_output_1 = torch.sum(bert_output_1[0]*attention_mask_1, dim=1) / torch.sum(attention_mask_1, dim=1)
+        mean_output_2 = torch.sum(bert_output_2[0]*attention_mask_2, dim=1) / torch.sum(attention_mask_2, dim=1)
+
+        cnst_feat1, cnst_feat2 = self.contrast_logits(mean_output_1, mean_output_2)
+        return cnst_feat1, cnst_feat2, mean_output_1, mean_output_2
             
     # pass BERT embedding through the contrastive heads to get logits
     def contrast_logits(self, embd1, embd2):
@@ -205,5 +204,6 @@ class PSCDistilBERT(DistilBertPreTrainedModel):
         # mean embeddings
         bert_output = self.distilbert.forward(input_ids=input_ids, attention_mask=attention_mask)
         attention_mask = attention_mask.unsqueeze(-1)
-        embeddings = torch.sum(bert_output[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
-        return embeddings
+        return torch.sum(bert_output[0] * attention_mask, dim=1) / torch.sum(
+            attention_mask, dim=1
+        )

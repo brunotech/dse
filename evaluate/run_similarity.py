@@ -66,11 +66,16 @@ def eval_intent_classification_with_prototypical_net(model, tokenizer, model_dir
                 print("Current accuracy: ", acc)
                 accuracy_count += acc
 
-            prefix = dataset + "|" + str(int(data_ratio)) + "|" + model_dir.split("/")[-1]  + "|" + task_type
+            prefix = (
+                f"{dataset}|{int(data_ratio)}|"
+                + model_dir.split("/")[-1]
+                + "|"
+                + task_type
+            )
             average_acc = accuracy_count/num_runs
             print("Average accuracy: \n\n", average_acc)
             with open(os.path.join(output_dir, "results.txt"), "a") as f:
-                f.write(prefix + " average_acc: "  + str(average_acc) + "\n")
+                f.write(f"{prefix} average_acc: {str(average_acc)}" + "\n")
 
 
 '''
@@ -111,7 +116,7 @@ record all the experimental results at 'output_dir'
 '''
 def eval_response_selection_amazonqa(model, tokenizer, model_dir, data_root_dir, output_dir='results/rs', task_type='average_embedding', max_seq_length=128):
     print("\n\n Evaluating response selection on AmazonQA")
-    
+
     data_dir = os.path.join(data_root_dir, 'rs', 'amazonqa', 'test.txt')
     with open(data_dir, "r") as f:
         data = list(csv.reader(f, delimiter="\t"))
@@ -142,7 +147,7 @@ def eval_response_selection_amazonqa(model, tokenizer, model_dir, data_root_dir,
     recall_5 /= num_batches
     recall_10 /= num_batches
 
-    message = str(recall_1) + "|" + str(recall_3) + "|" + str(recall_5) + "|" + str(recall_10)
+    message = f"{recall_1}|{recall_3}|{recall_5}|{recall_10}"
     print(message)
     with open(os.path.join(output_dir, "results.txt"), "w") as f:
         f.write(message + "\n")
@@ -150,20 +155,20 @@ def eval_response_selection_amazonqa(model, tokenizer, model_dir, data_root_dir,
 
 def eval_response_selection_ubuntu(model, tokenizer, model_dir, data_root_dir, output_dir='results/rs', task_type='average_embedding', max_seq_length=256):
     print("\n\n Evaluating response selection on Ubuntu")
-    
+
     data_dir = os.path.join(data_root_dir, 'rs', 'ubuntu', 'test.txt')
     with open(data_dir, "r") as f:
         data = list(csv.reader(f, delimiter="\t"))
         query = [d[0] for d in data] 
         target = [d[1] for d in data] 
         candidate = [d[2] for d in data]
-    
+
     target_plus_candidate = []
     for t, c in zip(target, candidate):
         c = c.split("|")
         target_plus_candidate.append(t)
         target_plus_candidate.extend(c)
-    
+
     fill_empty_sentence(query)
     fill_empty_sentence(target_plus_candidate)
 
@@ -196,7 +201,7 @@ def eval_response_selection_ubuntu(model, tokenizer, model_dir, data_root_dir, o
     recall_5 /= num_sampels / 100.
     recall_10 /= num_sampels / 100.
 
-    message = str(recall_1) + "|" + str(recall_3) + "|" + str(recall_5) + "|" + str(recall_10)
+    message = f"{str(recall_1)}|{str(recall_3)}|{str(recall_5)}|{str(recall_10)}"
     print(message)
     with open(os.path.join(output_dir, "results.txt"), "w") as f:
         f.write(message + "\n")
@@ -207,8 +212,10 @@ def eval_response_selection_ubuntu(model, tokenizer, model_dir, data_root_dir, o
 
 
 def eval_natural_language_inference(model, tokenizer, model_dir, data_root_dir, output_dir='results/nli_sim', task_type='average_embedding', max_seq_length=50):
-    print("\n\n Evaluating natural language inference on dialog-nli using {}".format(task_type))
-    
+    print(
+        f"\n\n Evaluating natural language inference on dialog-nli using {task_type}"
+    )
+
     data_dir = os.path.join(data_root_dir, 'nli', 'nli', 'all.txt')
     with open(data_dir, "r") as f:
         data = list(csv.reader(f, delimiter="\t"))
@@ -217,7 +224,7 @@ def eval_natural_language_inference(model, tokenizer, model_dir, data_root_dir, 
         neg = [d[2] for d in data] 
 
 
-    
+
     query_embeddings = calculate_embedding(query, model, tokenizer, max_length=max_seq_length, task_type=task_type, batch_size=2000, verbose=True)
     neg_embeddings = calculate_embedding(neg, model, tokenizer, max_length=max_seq_length, task_type=task_type, batch_size=2000, verbose=True)
     pos_embeddings = calculate_embedding(pos, model, tokenizer, max_length=max_seq_length, task_type=task_type, batch_size=2000, verbose=True)
@@ -234,7 +241,7 @@ def eval_natural_language_inference(model, tokenizer, model_dir, data_root_dir, 
     num_correct = (pos_scores > neg_scores).sum()
     accuracy = 100. * num_correct / len(data)
 
-    message = str(accuracy) 
+    message = str(accuracy)
     print(message)
     with open(os.path.join(output_dir, "results.txt"), "w") as f:
         f.write(message + "\n")
@@ -248,21 +255,21 @@ Load pre-trained model from 'model_dir', perform out of scope and record all the
 '''
 def eval_out_of_scope_detection(model, tokenizer, model_dir, data_root_dir, output_dir='results/oos', task_type='average_embedding', num_runs=10, max_seq_length=50):
     print("\n\n Evaluating out-of-scope detection")
-    
-    for data_ratio in [1, 5]:    
+
+    for data_ratio in [1, 5]:
         print(f"Making prediction with {data_ratio}-shot data")
         data_dir = os.path.join(data_root_dir, "intent", "clinc150_all")
         hidden_size = model.config.hidden_size
 
-        count = {}
-        for i in range(3):
-            count[i] = {}
-            count[i]['accuracy_count'] = 0
-            count[i]['in_accuracy_count'] = 0
-            count[i]['oos_accuracy_count'] = 0
-            count[i]['oos_recall_count'] = 0
-
-
+        count = {
+            i: {
+                'accuracy_count': 0,
+                'in_accuracy_count': 0,
+                'oos_accuracy_count': 0,
+                'oos_recall_count': 0,
+            }
+            for i in range(3)
+        }
         for idx in range(num_runs):
             DATA_DIR = os.path.join(data_dir, str(int(data_ratio)))
             DATA_DIR = os.path.join(DATA_DIR, str(idx))
@@ -288,7 +295,7 @@ def eval_out_of_scope_detection(model, tokenizer, model_dir, data_root_dir, outp
             max_values = sim_matrix.max(axis=1)
             cur_mean = max_values.mean()
             cur_std = max_values.std()
-            
+
             thresholds = [cur_mean - cur_std, cur_mean, cur_mean + cur_std]
             for j in range(3):
                 cur_threshold = thresholds[j]
@@ -303,7 +310,7 @@ def eval_out_of_scope_detection(model, tokenizer, model_dir, data_root_dir, outp
                 count[j]['oos_recall_count'] += oos_recall
 
 
-        prefix = str(int(data_ratio)) + "|" 
+        prefix = f"{int(data_ratio)}|"
         for i in range(3):
             average_acc = count[i]['accuracy_count']/num_runs
             average_in_acc = count[i]['in_accuracy_count']/num_runs
@@ -344,7 +351,7 @@ if __name__ == "__main__":
     args.model_dir = args.model_dir.replace("//","/")
     model = AutoModel.from_pretrained(args.model_dir)
     tokenizer = AutoTokenizer.from_pretrained(args.model_dir, use_fast=True)
-    if tokenizer.pad_token == None:
+    if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     if args.TASK == "intent":

@@ -71,14 +71,8 @@ def process_clinc150(output_dir):
 
 def process_bank77(output_dir):
     banking77 = load_dataset("banking77")
-    train = []
-    test = []
-
-    for item in banking77["train"]:
-        train.append([item['text'], item['label']])
-    for item in banking77["test"]:
-        test.append([item['text'], item['label']])
-
+    train = [[item['text'], item['label']] for item in banking77["train"]]
+    test = [[item['text'], item['label']] for item in banking77["test"]]
     bank77_path = os.path.join(output_dir, "intent", "bank77")
     os.makedirs(bank77_path)
     with open(os.path.join(bank77_path, "seq_train.txt"), "w") as f:
@@ -109,28 +103,20 @@ def process_snips(output_dir):
             idx += 1
         item[1] = cat2id[item[1]]
 
-    # randomly select 90% of data for training and the rest for testing
-    total_count = {}
-    for i in range(7):
-        total_count[i] = 0
+    total_count = {i: 0 for i in range(7)}
     for item in snips:
         total_count[item[1]] += 1
 
-    cat_count = {}
-    for i in range(7):
-        cat_count[i] = 0
-
+    cat_count = {i: 0 for i in range(7)}
     train = []
     test = []
     for item in snips:
         cat = item[1]
         if cat_count[cat] >= total_count[cat] * 0.9:
             test.append(item)
-            cat_count[cat] += 1
         else:
             train.append(item)
-            cat_count[cat] += 1
-
+        cat_count[cat] += 1
     snips_path = os.path.join(output_dir, "intent", "snips")
     os.makedirs(snips_path)
     with open(os.path.join(snips_path, "seq_train.txt"), "w") as f:
@@ -156,35 +142,27 @@ def process_hwu64(output_dir):
 
     hwu64 = []
     for item in raw_data:
-        raw_label = item[2] + "_" + item[3]
+        raw_label = f"{item[2]}_{item[3]}"
         if raw_label not in label2id:
             continue
         label = label2id[raw_label]
         text = item[9]
         hwu64.append([text, label])
 
-    # randomly select 85% of data for training and the rest for testing
-    total_count = {}
-    for i in range(64):
-        total_count[i] = 0
+    total_count = {i: 0 for i in range(64)}
     for item in hwu64:
         total_count[item[1]] += 1
 
-    cat_count = {}
-    for i in range(64):
-        cat_count[i] = 0
-
+    cat_count = {i: 0 for i in range(64)}
     train = []
     test = []
     for item in hwu64:
         cat = item[1]
         if cat_count[cat] >= total_count[cat] * 0.85:
             test.append(item)
-            cat_count[cat] += 1
         else:
             train.append(item)
-            cat_count[cat] += 1
-
+        cat_count[cat] += 1
     hwu64_path = os.path.join(output_dir, "intent", "hwu64")
     os.makedirs(hwu64_path)
     with open(os.path.join(hwu64_path, "seq_train.txt"), "w") as f:
@@ -229,10 +207,14 @@ def process_ubuntu(output_dir):
 
     ubuntu = ubuntu_test + ubuntu_val
     ubuntu = [u for u in ubuntu if len(u) > 0]
-    data = []
-    for item in ubuntu:
-        data.append([item[0][5:].replace("\\n", " "), item[1][7:].replace("\\n", " "), item[2][17:].replace("\\n", " ")])
-
+    data = [
+        [
+            item[0][5:].replace("\\n", " "),
+            item[1][7:].replace("\\n", " "),
+            item[2][17:].replace("\\n", " "),
+        ]
+        for item in ubuntu
+    ]
     ubuntu_path = os.path.join(output_dir, "rs", "ubuntu")
     os.makedirs(ubuntu_path)
     with open(os.path.join(ubuntu_path, "test.txt"), "w") as f:

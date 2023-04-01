@@ -33,8 +33,9 @@ def pair_loader_csv(args):
     pairsimi = [1 for _ in train_data]
 
     train_dataset = PairSamples(train_text1, train_text2, pairsimi)
-    train_loader = util_data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-    return train_loader
+    return util_data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4
+    )
 
 
 '''
@@ -50,5 +51,6 @@ def pair_loader_txt(args):
     pairsimi = [1] * len(texts)
 
     train_dataset = PairSamples(train_text1, train_text2, pairsimi)
-    train_loader = util_data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-    return train_loader
+    return util_data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4
+    )

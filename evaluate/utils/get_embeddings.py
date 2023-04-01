@@ -19,8 +19,7 @@ class TextDataset(torch.utils.data.Dataset):
         self.encodings = encodings
 
     def __getitem__(self, idx):
-        item = {key: val[idx] for key, val in self.encodings.items()}
-        return item
+        return {key: val[idx] for key, val in self.encodings.items()}
 
     def __len__(self):
         return len(self.encodings['input_ids'])
@@ -41,7 +40,7 @@ def _tokenize_multiturn_dialogue_split(raw_text, num_turn, tokenizer, max_seq_le
     for txt in split_text:
         text += txt
     text = [t.strip() for t in text]
-    
+
 
     token_feat = tokenizer.batch_encode_plus(
         text, 
@@ -56,17 +55,14 @@ def _tokenize_multiturn_dialogue_split(raw_text, num_turn, tokenizer, max_seq_le
     attention_mask = token_feat['attention_mask'].view(batch_size, num_turn, -1)
 
 
-    encodings = {"input_ids": input_ids, 
-                "attention_mask": attention_mask}
-    
-    return encodings
+    return {"input_ids": input_ids, "attention_mask": attention_mask}
 
 def calculate_embedding(texts, model, tokenizer, device='cuda', batch_size=1000, max_length=32, verbose=False, task_type="average_embedding", num_category=0, num_turn=1):
     n_gpu = torch.cuda.device_count()
 
     hidden_size = model.config.hidden_size
     model.to(device)
-    
+
     if n_gpu > 1 and not isinstance(model, torch.nn.DataParallel):
         model = torch.nn.DataParallel(model)
 
@@ -106,14 +102,7 @@ def calculate_embedding(texts, model, tokenizer, device='cuda', batch_size=1000,
                     embeddings = embeddings[1].to("cpu").type_as(results)
                 elif task_type == "cls_embedding_nopool":
                     embeddings = embeddings[0][:, 0, :].to("cpu").type_as(results)
-                elif task_type == "average_embedding":
-                    attention_mask = attention_mask.unsqueeze(-1)
-                    embeddings = torch.sum(embeddings[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
-                    embeddings = embeddings.to("cpu").type_as(results)
-                elif task_type == "dialogpt_embedding":
-                    # last_token_position = attention_mask.sum(1) - 1
-                    # embeddings = embeddings[0]
-                    # embeddings = embeddings[torch.arange(embeddings.shape[0]), last_token_position]
+                elif task_type in ["average_embedding", "dialogpt_embedding"]:
                     attention_mask = attention_mask.unsqueeze(-1)
                     embeddings = torch.sum(embeddings[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
                     embeddings = embeddings.to("cpu").type_as(results)
@@ -127,16 +116,16 @@ def calculate_embedding(texts, model, tokenizer, device='cuda', batch_size=1000,
                 cur_preds = softmax(cur_preds)
                 results = torch.cat([results, cur_preds])
 
-            # elif task_type == "dialogpt_embedding":
-            #     print(attention_mask.shape)
-            #     transformer_outputs = model(
-            #         input_ids,
-            #         attention_mask)[0]
-            #     embeddings = transformer_outputs.mean(1)
-            #     embeddings = embeddings.to("cpu").type_as(results)
-            #     results = torch.cat([results, embeddings])
-                
-    
+                    # elif task_type == "dialogpt_embedding":
+                    #     print(attention_mask.shape)
+                    #     transformer_outputs = model(
+                    #         input_ids,
+                    #         attention_mask)[0]
+                    #     embeddings = transformer_outputs.mean(1)
+                    #     embeddings = embeddings.to("cpu").type_as(results)
+                    #     results = torch.cat([results, embeddings])
+                        
+
     return results[1:].numpy().astype(np.float32)
 
 
@@ -154,7 +143,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     args.n_gpu = torch.cuda.device_count()
-    batch_size = args.batch_size if args.batch_size else 10
+    batch_size = args.batch_size or 10
 
     root_path = '/'.join(args.index_dir.split("/")[:-1])
     if not os.path.exists(root_path):
@@ -166,7 +155,7 @@ if __name__ == "__main__":
     texts = [t.split('\t')[-1] for t in texts]
 
 
-    device = "cuda" 
+    device = "cuda"
     tokenizer = AutoTokenizer.from_pretrained(args.model_dir, use_fast=True)
     model = AutoModel.from_pretrained(args.model_dir)
 

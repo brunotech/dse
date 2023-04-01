@@ -21,7 +21,7 @@ def run(args):
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     device_id = torch.cuda.device_count()
-    print("\t {} GPUs available to use!".format(device_id))
+    print(f"\t {device_id} GPUs available to use!")
 
     '''
     We assume paired training data (e.g., NLI data) is always saved in csv/tsv format,
@@ -33,7 +33,7 @@ def run(args):
         train_loader = pair_loader_txt(args)
     else:
         return ValueError()
-    
+
     # model & optimizer
     config, tokenizer = get_bert_config_tokenizer(args.bert)
     if 'roberta' in args.bert:
@@ -44,10 +44,10 @@ def run(args):
         model = PSCBert.from_pretrained(MODEL_CLASS[args.bert], feat_dim=args.feat_dim)
 
     optimizer = get_optimizer(model, args)
-    
+
     model = nn.DataParallel(model)
     model.to(device)
-    
+
     # set up the trainer
     trainer = PSCTrainer(model, tokenizer, optimizer, train_loader, args)
     trainer.train()

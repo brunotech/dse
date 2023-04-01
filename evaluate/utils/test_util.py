@@ -12,11 +12,8 @@ import torch
 def test_intent_retrieval(all_labels, embeddings):
     all_labels = np.array(all_labels)
 
-    count = {}
     NUMS = [5, 10, 20, 50, 100]
-    for num in NUMS:
-        count[num] = 0
-
+    count = {num: 0 for num in NUMS}
     sim_matrix = embeddings @ embeddings.T
 
     for num in NUMS:

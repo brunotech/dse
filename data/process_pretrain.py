@@ -22,10 +22,10 @@ def generate_single_vs_single(data_dir, output_dir, min_length):
                         cur_dia.append(item['turn_usr'])
                     cur_dia = [t.replace("\n", "").replace("\t", "") for t in cur_dia]
                     # get positive examples
-                    for i in range(len(cur_dia) - 1):
-                        dialogues.append([cur_dia[i], cur_dia[i+1], 1])
-
-
+                    dialogues.extend(
+                        [cur_dia[i], cur_dia[i + 1], 1]
+                        for i in range(len(cur_dia) - 1)
+                    )
     dialogues = [d for d in dialogues if len(d[0].split()) > min_length and len(d[1].split()) > min_length]
 
     random.shuffle(dialogues)

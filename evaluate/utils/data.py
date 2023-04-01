@@ -37,8 +37,11 @@ class SetencePairDataset(torch.utils.data.Dataset):
         self.seq_labels = seq_labels
 
     def __getitem__(self, idx):
-        item = {}
-        item['context'] = {key: val[idx] for key, val in self.context_encodings.items()}
+        item = {
+            'context': {
+                key: val[idx] for key, val in self.context_encodings.items()
+            }
+        }
         item['response'] = {key: val[idx] for key, val in self.response_encodings.items()}
         item['seq_labels'] = torch.tensor(self.seq_labels[idx]) if self.seq_labels else 0
         return item
@@ -144,8 +147,10 @@ def _read_data_intent_slot(file_path, valid=False, ner=False):
         test_file_path = file_path
     else:
         test_file_path = "/".join(file_path.rstrip("/").split("/")[:-2])
-    
-    assert os.path.exists(os.path.join(test_file_path, "seq_test.txt")), "No test file at {} or {}".format(file_path, test_file_path)
+
+    assert os.path.exists(
+        os.path.join(test_file_path, "seq_test.txt")
+    ), f"No test file at {file_path} or {test_file_path}"
 
     if ner:
         with open(os.path.join(file_path, "ner_train.txt"), "r") as f:
@@ -167,21 +172,19 @@ def _read_data_intent_slot(file_path, valid=False, ner=False):
         test_text = [s[0] for s in seq_test]
         test_seq_labels = [int(s[1]) for s in seq_test]
 
-    if valid:
-        if ner:
-            with open(os.path.join(file_path, "ner_val.txt"), "r") as f:
-                val_ner = f.readlines()
-                val_ner = [n.strip("\n").split() for n in val_ner]
-        with open(os.path.join(file_path, "seq_val.txt"), "r") as f:
-            seq_val = f.readlines()
-            seq_val = [s.strip("\n").split("\t") for s in seq_val]
-            val_text = [s[0] for s in seq_val]
-            val_seq_labels = [int(s[1]) for s in seq_val]
-
-        return train_ner, test_ner, val_ner, train_text, test_text, val_text, train_seq_labels, test_seq_labels, val_seq_labels
-    
-    else:
+    if not valid:
         return train_ner, test_ner, train_text, test_text, train_seq_labels, test_seq_labels
+    if ner:
+        with open(os.path.join(file_path, "ner_val.txt"), "r") as f:
+            val_ner = f.readlines()
+            val_ner = [n.strip("\n").split() for n in val_ner]
+    with open(os.path.join(file_path, "seq_val.txt"), "r") as f:
+        seq_val = f.readlines()
+        seq_val = [s.strip("\n").split("\t") for s in seq_val]
+        val_text = [s[0] for s in seq_val]
+        val_seq_labels = [int(s[1]) for s in seq_val]
+
+    return train_ner, test_ner, val_ner, train_text, test_text, val_text, train_seq_labels, test_seq_labels, val_seq_labels
 
 
 
@@ -209,14 +212,11 @@ def get_intent_slot_dataset(BERT_MODEL="bert-base-uncased", data_path="data/atis
     id2tag = {}
 
     if TASK=="ner":
-        train_ner_tags = set(tag for doc in train_ner for tag in doc)
-        val_ner_tags = set(tag for doc in val_ner for tag in doc)
-        test_ner_tags = set(tag for doc in test_ner for tag in doc)
+        train_ner_tags = {tag for doc in train_ner for tag in doc}
+        val_ner_tags = {tag for doc in val_ner for tag in doc}
+        test_ner_tags = {tag for doc in test_ner for tag in doc}
 
-        not_seen_slots = []
-        for tag in test_ner_tags:
-            if tag not in train_ner_tags:
-                not_seen_slots.append(tag)
+        not_seen_slots = [tag for tag in test_ner_tags if tag not in train_ner_tags]
         print("Not seen slots: ", not_seen_slots)
 
         unique_tags = list(train_ner_tags.union(test_ner_tags).union(val_ner_tags))
@@ -231,7 +231,7 @@ def get_intent_slot_dataset(BERT_MODEL="bert-base-uncased", data_path="data/atis
     for text in train_text + val_text + test_text:
         max_len = max(max_len, len(text.split()))
 
-    
+
     print("Number of samples: ", len(train_text))
     print("Number of intents: ", len(unique_seq_labels))
     print("Max sequence length: ", max_len)
@@ -268,9 +268,11 @@ def _read_data_dialogue_action(file_path):
         test_file_path = file_path
     else:
         test_file_path = "/".join(file_path.rstrip("/").split("/")[:-2])
-    
-    assert os.path.exists(os.path.join(test_file_path, "test.json")), "No test file at {} or {}".format(file_path, test_file_path)
-    
+
+    assert os.path.exists(
+        os.path.join(test_file_path, "test.json")
+    ), f"No test file at {file_path} or {test_file_path}"
+
     train_data = json.load(open(os.path.join(file_path, "train.json"), "r"))
     test_data = json.load(open(os.path.join(test_file_path, "test.json"), "r"))
     val_data = json.load(open(os.path.join(file_path, "dev.json"), "r"))
@@ -287,9 +289,11 @@ def _read_data_response_selection(file_path):
         test_file_path = file_path
     else:
         test_file_path = "/".join(file_path.rstrip("/").split("/")[:-2])
-    
-    assert os.path.exists(os.path.join(test_file_path, "test.txt")), "No test file at {} or {}".format(file_path, test_file_path)
-    
+
+    assert os.path.exists(
+        os.path.join(test_file_path, "test.txt")
+    ), f"No test file at {file_path} or {test_file_path}"
+
     train_data = list(csv.reader((open(os.path.join(file_path, "train.txt"), "r")), delimiter="\t"))
     test_data = list(csv.reader((open(os.path.join(test_file_path, "test.txt"), "r")), delimiter="\t"))
     val_data = list(csv.reader((open(os.path.join(file_path, "dev.txt"), "r")), delimiter="\t"))
@@ -319,32 +323,29 @@ def _tokenize_multiturn_dialogue_concatenate(raw_text, tokenizer, max_seq_len, c
         cleaned_text = [" ".join(t.split()[-num_keeped_words:]) for t in cleaned_text]
     else:
         cleaned_text = raw_text
-    
+
     print(len(cleaned_text))
     print(cleaned_text[0])
 
 
-    token_feat = tokenizer.batch_encode_plus(
-        cleaned_text, 
-        max_length=max_seq_len, 
-        return_tensors='pt', 
-        padding='max_length', 
-        truncation=True
+    return tokenizer.batch_encode_plus(
+        cleaned_text,
+        max_length=max_seq_len,
+        return_tensors='pt',
+        padding='max_length',
+        truncation=True,
     )
-
-    
-    return token_feat
         
 
 
 
 def get_dialogue_action_dataset(BERT_MODEL="bert-base-uncased", file_path="", max_seq_length=32, concatenate=False, num_turn=2):
     tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
-    change_usrsys_to_sep_token = True if "todbert" not in BERT_MODEL.lower() else False
+    change_usrsys_to_sep_token = "todbert" not in BERT_MODEL.lower()
 
 
     train_text, train_labels, test_text, test_labels, val_text, val_labels = _read_data_dialogue_action(file_path)
-    
+
     print("Number of training samples: ", len(train_text))
 
     train_encodings = _tokenize_multiturn_dialogue_concatenate(train_text, tokenizer, max_seq_len=max_seq_length, change_usrsys_to_sep_token=change_usrsys_to_sep_token, data_clean=True)
@@ -364,15 +365,15 @@ def get_dialogue_action_dataset(BERT_MODEL="bert-base-uncased", file_path="", ma
 
 def get_response_selection_dataset(BERT_MODEL="bert-base-uncased", file_path="", max_seq_length=32, concatenate=False, num_turn=2):
     tokenizer = AutoTokenizer.from_pretrained(BERT_MODEL)
-    change_usrsys_to_sep_token = True if "tod" not in BERT_MODEL.lower() else False
+    change_usrsys_to_sep_token = "tod" not in BERT_MODEL.lower()
     # change_usrsys_to_sep_token = True
 
     max_query_length = max_seq_length
     max_response_length = max_seq_length if 'amazonqa' in file_path else 32
-    data_clean = False if 'amazonqa' in file_path else True
+    data_clean = 'amazonqa' not in file_path
 
     train_context, train_response, test_context, test_response, val_context, val_response = _read_data_response_selection(file_path)
-    
+
     print("Number of training samples: ", len(train_context))
 
     train_context_encodings = _tokenize_multiturn_dialogue_concatenate(train_context, tokenizer, max_seq_len=max_query_length, change_usrsys_to_sep_token=change_usrsys_to_sep_token, data_clean=data_clean)
@@ -410,7 +411,7 @@ def _sample_few_shot_from_original_data(TASK="seq", data_ratio=1, train_text=Non
             current_ner_label = set(ner_label)
             for l in current_ner_label:
                 Label2id[l] = Label2id.get(l, []) + [i]
-    
+
     train_ner_new = []
     train_text_new = []
     train_seq_labels_new = []
@@ -425,14 +426,13 @@ def _sample_few_shot_from_original_data(TASK="seq", data_ratio=1, train_text=Non
         cur_sampled_ids = random.sample(Label2id[label], num_sample)
         for cur_id in cur_sampled_ids:
             all_sampled_ids[label] = all_sampled_ids.get(label, []) + [cur_id]
-    
+
     unique_samples = set()
-    for label in all_sampled_ids:
-        cur_samples = all_sampled_ids[label]
+    for cur_samples in all_sampled_ids.values():
         cur_samples = [s for s in cur_samples if s not in unique_samples]
         unique_samples = unique_samples.union(set(cur_samples))
 
-        num_train_samples = len(cur_samples) - int(len(cur_samples) / 2)
+        num_train_samples = len(cur_samples) - len(cur_samples) // 2
         train_samples = cur_samples[:num_train_samples]
         val_samples = cur_samples[num_train_samples:]
 

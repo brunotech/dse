@@ -151,8 +151,9 @@ class BertMultiTurnForDialogueActionPredictionConcat(BertPreTrainedModel):
         # mean embeddings
         bert_output = self.bert.forward(input_ids=input_ids, attention_mask=attention_mask)
         attention_mask = attention_mask.unsqueeze(-1)
-        embeddings = torch.sum(bert_output[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
-        return embeddings
+        return torch.sum(bert_output[0] * attention_mask, dim=1) / torch.sum(
+            attention_mask, dim=1
+        )
 
 
 
@@ -315,8 +316,9 @@ class DistilBertMultiTurnForDialogueActionPredictionConcat(DistilBertPreTrainedM
         # mean embeddings
         bert_output = self.distilbert.forward(input_ids=input_ids, attention_mask=attention_mask)
         attention_mask = attention_mask.unsqueeze(-1)
-        embeddings = torch.sum(bert_output[0]*attention_mask, dim=1) / torch.sum(attention_mask, dim=1)
-        return embeddings
+        return torch.sum(bert_output[0] * attention_mask, dim=1) / torch.sum(
+            attention_mask, dim=1
+        )
 
 
 

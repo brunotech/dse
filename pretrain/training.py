@@ -30,24 +30,23 @@ class PSCTrainer(nn.Module):
         self.task_type = self.args.mode
         self.gstep = 0
         self.dev_objective = -1
-        
+
         self.psc_loss = HardConLoss(temperature=self.args.temperature, contrast_type=self.args.contrast_type).cuda()
         self.classify_loss = nn.CrossEntropyLoss().cuda()
-        print("\nUsing PSC_Trainer, {}\n".format(self.args.contrast_type))
+        print(f"\nUsing PSC_Trainer, {self.args.contrast_type}\n")
         
 
     def get_batch_token(self, text, max_length=-1):
         if max_length == -1:
             max_length = self.args.max_length
 
-        token_feat = self.tokenizer.batch_encode_plus(
-            text, 
-            max_length=max_length, 
-            return_tensors='pt', 
-            padding='max_length', 
-            truncation=True
+        return self.tokenizer.batch_encode_plus(
+            text,
+            max_length=max_length,
+            return_tensors='pt',
+            padding='max_length',
+            truncation=True,
         )
-        return token_feat
         
 
     def prepare_pairwise_input(self, batch):
@@ -85,22 +84,19 @@ class PSCTrainer(nn.Module):
     def save_model(self, epoch, best_dev=False):
         if best_dev:
             save_dir = os.path.join(self.args.resPath, 'dev')
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            self.model.module.save_pretrained(save_dir)
-            self.tokenizer.save_pretrained(save_dir)
         else:
             save_dir = os.path.join(self.args.resPath, str(epoch+1))
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-            self.model.module.save_pretrained(save_dir)
-            self.tokenizer.save_pretrained(save_dir)
+
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        self.model.module.save_pretrained(save_dir)
+        self.tokenizer.save_pretrained(save_dir)
 
 
     def train(self):
 
         all_iter = self.args.epochs * len(self.train_loader)
-        print('\n={}/{}=Iterations/Batches'.format(all_iter, len(self.train_loader)))
+        print(f'\n={all_iter}/{len(self.train_loader)}=Iterations/Batches')
 
         self.model.train()
         epoch_iterator = tqdm(self.train_loader, desc="Iteration")
@@ -110,18 +106,18 @@ class PSCTrainer(nn.Module):
                     input_ids, attention_mask, pairsimi = self.prepare_pairwise_input_multiturn_concatenate(batch)
                 else:
                     input_ids, attention_mask, pairsimi = self.prepare_pairwise_input(batch)
-                    
+
                 losses = self.train_step(input_ids, attention_mask, pairsimi)
 
 
                 if (self.gstep%self.args.logging_step==0) or (self.gstep==all_iter) or (self.gstep==self.args.max_iter):
                     statistics_log(self.args.tensorboard, losses=losses, global_step=self.gstep)
-                        
+
                 elif self.gstep > self.args.max_iter:
                     break
-                    
+
                 self.gstep += 1
-                
+
             print("Finish Epoch: ", epoch)
             if self.args.save_model_every_epoch:
                 self.save_model(epoch, best_dev=False)
